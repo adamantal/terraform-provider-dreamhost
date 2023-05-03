@@ -1,4 +1,4 @@
-package hashicups
+package dreamhost
 
 import (
 	"context"

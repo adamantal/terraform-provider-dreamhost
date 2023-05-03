@@ -1,5 +1,5 @@
 .DS_Store
-terraform-provider-hashicups
+terraform-provider-dreamhost
 bin
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,terraform
