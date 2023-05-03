@@ -4,7 +4,7 @@ NAMESPACE=edu
 NAME=dreamhost
 BINARY=terraform-provider-${NAME}
 VERSION=0.0.1
-OS_ARCH=darwin_amd64
+OS_ARCH=darwin_arm64
 
 default: install
 
@@ -34,4 +34,10 @@ test:
 	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4                    
 
 testacc: 
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m   
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+lint: ## Runs a linter against the repository.
+	golangci-lint run
+
+lint-fix: ## Runs a linter against the repository and tries to automatically fix all the errors.
+	golangci-lint run --fix
