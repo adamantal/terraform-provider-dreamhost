@@ -23,38 +23,45 @@ func resourceDNSRecord() *schema.Resource {
 		DeleteContext: resourceDNSRecordDelete,
 		Schema: map[string]*schema.Schema{
 			"record": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "the name of the DNS record",
 			},
 			"value": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "the value of the DNS record",
 			},
 			"type": {
 				// TODO(adamantal): add validatation for DNS record types
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "the type of the DNS record (e.g. A, CNAME, TXT)",
 			},
 
 			// computed values
 			"comment": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "any comment attached to the DNS record",
 			},
 			"account_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "the account ID belonging to the DNS record",
 			},
 			"zone": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "the zone of the DNS record (used in a multi-zone setup)",
 			},
 			"editable": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "whether the record is editable",
 			},
 		},
 		Importer: &schema.ResourceImporter{

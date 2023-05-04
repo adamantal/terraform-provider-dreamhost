@@ -21,6 +21,7 @@ func Provider() *schema.Provider {
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc(dreamhostAPIKeyEnvVarName, nil),
+				Description: "the key to access the Dreamhost API",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
