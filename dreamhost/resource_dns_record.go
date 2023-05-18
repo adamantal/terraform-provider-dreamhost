@@ -2,13 +2,13 @@ package dreamhost
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	dreamhostapi "github.com/adamantal/go-dreamhost/api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -71,7 +71,7 @@ func resourceDNSRecord() *schema.Resource {
 }
 
 func resourceDNSRecordCreate(ctx context.Context, data *schema.ResourceData, config interface{}) diag.Diagnostics {
-	api, ok := config.(*dreamhostapi.Client) // nolint:varnamelen
+	api, ok := config.(*cachedDreamhostClient) // nolint:varnamelen
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve dreamhost API client")
 	}
@@ -106,13 +106,19 @@ func resourceDNSRecordCreate(ctx context.Context, data *schema.ResourceData, con
 
 	data.SetId(recordInputToID(recordInput))
 
-	resourceDNSRecordRead(ctx, data, config)
+	dnsRecord, err := api.GetDNSRecord(ctx, recordInput, false)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if err := refreshDataFromRecord(data, *dnsRecord); err != nil {
+		return diag.Errorf("failed to refresh data from record")
+	}
 
 	return diags
 }
 
 func resourceDNSRecordRead(ctx context.Context, data *schema.ResourceData, config interface{}) diag.Diagnostics {
-	api, ok := config.(*dreamhostapi.Client)
+	api, ok := config.(*cachedDreamhostClient)
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve dreamhost API client")
 	}
@@ -123,36 +129,47 @@ func resourceDNSRecordRead(ctx context.Context, data *schema.ResourceData, confi
 		return diag.FromErr(err)
 	}
 
-	records, err := api.ListDNSRecords(ctx)
+	record, err := api.GetDNSRecord(ctx, *recordInput, true)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	for _, record := range records {
-		if record.Record == recordInput.Record &&
-			record.Type == recordInput.Type &&
-			(record.Value == recordInput.Value || record.Value+"." == recordInput.Value) {
-			// record found
-
-			data.Set("record", record.Record)
-			data.Set("value", record.Value)
-			data.Set("type", record.Type)
-
-			// computed values
-			data.Set("comment", record.Comment)
-			data.Set("account_id", record.AccountID)
-			data.Set("zone", record.Zone)
-			data.Set("editable", record.Editable)
-
-			return nil
-		}
+	if err := refreshDataFromRecord(data, *record); err != nil {
+		return diag.Errorf("failed to refresh data from record")
 	}
 
-	return diag.FromErr(errors.New("record not found"))
+	return nil
+}
+
+func refreshDataFromRecord(data *schema.ResourceData, record dreamhostapi.DNSRecord) error {
+	if err := data.Set("record", record.Record); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	if err := data.Set("value", record.Value); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	if err := data.Set("type", record.Type); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+
+	// computed values
+	if err := data.Set("comment", record.Comment); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	if err := data.Set("account_id", record.AccountID); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	if err := data.Set("zone", record.Zone); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	if err := data.Set("editable", record.Editable); err != nil {
+		return errors.Wrap(err, "failed to set field `record`")
+	}
+	return nil
 }
 
 func resourceDNSRecordDelete(ctx context.Context, data *schema.ResourceData, config interface{}) diag.Diagnostics {
-	api, ok := config.(*dreamhostapi.Client)
+	api, ok := config.(*cachedDreamhostClient)
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve dreamhost API client")
 	}

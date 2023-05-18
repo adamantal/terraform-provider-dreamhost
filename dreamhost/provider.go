@@ -62,5 +62,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diags
 	}
 
-	return api, diags
+	cachedAPI := newDreamhostClient(api)
+
+	return cachedAPI, diags
 }
