@@ -2,17 +2,14 @@ package dreamhost
 
 import (
 	"context"
-	"errors"
-	"sync"
 
 	dreamhostapi "github.com/adamantal/go-dreamhost/api"
+	"github.com/pkg/errors"
 )
 
 type cachedDreamhostClient struct {
-	sync.RWMutex
-
-	client        *dreamhostapi.Client
-	cachedRecords []dreamhostapi.DNSRecord
+	client *dreamhostapi.Client
+	cache  cache
 }
 
 func newDreamhostClient(client *dreamhostapi.Client) *cachedDreamhostClient {
@@ -28,8 +25,12 @@ func (c *cachedDreamhostClient) AddDNSRecord(ctx context.Context, recordInput dr
 func (c *cachedDreamhostClient) GetDNSRecord(
 	ctx context.Context, recordInput dreamhostapi.DNSRecordInput, enableCache bool,
 ) (*dreamhostapi.DNSRecord, error) {
-	if enableCache && c.cachedRecords != nil {
-		for _, record := range c.cachedRecords {
+	if enableCache {
+		records, err := c.cache.GetRecords(ctx, c)
+		if err != nil {
+			return nil, err
+		}
+		for _, record := range records {
 			if record.Record == recordInput.Record &&
 				record.Type == recordInput.Type &&
 				(record.Value == recordInput.Value || record.Value+"." == recordInput.Value) {
@@ -37,10 +38,10 @@ func (c *cachedDreamhostClient) GetDNSRecord(
 				return &record, nil
 			}
 		}
-		return nil, errors.New("record not found")
+		return nil, nil
 	}
 	if _, err := c.ListDNSRecords(ctx); err != nil {
-		return nil, errors.New("failed to refresh cache")
+		return nil, errors.Wrap(err, "failed to refresh cache")
 	}
 	return c.GetDNSRecord(ctx, recordInput, true)
 }
@@ -51,7 +52,6 @@ func (c *cachedDreamhostClient) ListDNSRecords(ctx context.Context) ([]dreamhost
 		return nil, err
 	}
 
-	c.cachedRecords = records
 	return records, err
 }
 

@@ -110,6 +110,9 @@ func resourceDNSRecordCreate(ctx context.Context, data *schema.ResourceData, con
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if dnsRecord == nil {
+		return diag.Errorf("API error - failed to create DNS record")
+	}
 	if err := refreshDataFromRecord(data, *dnsRecord); err != nil {
 		return diag.Errorf("failed to refresh data from record")
 	}
@@ -118,6 +121,8 @@ func resourceDNSRecordCreate(ctx context.Context, data *schema.ResourceData, con
 }
 
 func resourceDNSRecordRead(ctx context.Context, data *schema.ResourceData, config interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	api, ok := config.(*cachedDreamhostClient)
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve dreamhost API client")
@@ -134,11 +139,18 @@ func resourceDNSRecordRead(ctx context.Context, data *schema.ResourceData, confi
 		return diag.FromErr(err)
 	}
 
+	// record is completely missing
+	if !data.IsNewResource() && record == nil {
+		data.SetId("")
+		return diags
+	}
+
+	// record is found, refresh data
 	if err := refreshDataFromRecord(data, *record); err != nil {
 		return diag.Errorf("failed to refresh data from record")
 	}
 
-	return nil
+	return diags
 }
 
 func refreshDataFromRecord(data *schema.ResourceData, record dreamhostapi.DNSRecord) error {
