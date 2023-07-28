@@ -83,15 +83,18 @@ func resourceDNSRecordCreate(ctx context.Context, data *schema.ResourceData, con
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve record property for DNS record creation")
 	}
+	typ, ok := data.Get("type").(string)
+	if !ok {
+		return diag.Errorf("internal error: failed to retrieve type property for DNS record creation")
+	}
+	actualType := dreamhostapi.RecordType(typ)
 	value, ok := data.Get("value").(string)
 	if !ok {
 		return diag.Errorf("internal error: failed to retrieve value property for DNS record creation")
 	}
-	// workaround: Dreamhost would do this anyways, let's save the resource adding the trailing dot in Terraform
-	value += "."
-	typ, ok := data.Get("type").(string)
-	if !ok {
-		return diag.Errorf("internal error: failed to retrieve type property for DNS record creation")
+	// workaround: Dreamhost would do this anyways, let's save the resource adding the trailing dot in Terrafor
+	if actualType == dreamhostapi.CNAMERecordType {
+		value += "."
 	}
 	recordInput := dreamhostapi.DNSRecordInput{
 		Record: record,
